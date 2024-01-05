@@ -17,6 +17,14 @@ config = {
     "forecast_size": 4
   },
   
+  'model': ANN, # or RandomForestRegressor
+  'ann_model_params': {
+    'hidden_dim': 512,
+    'activation': "relu",
+    'use_dropout': False,
+  },
+  
+  
   'train_params': {
     'data_loader_params': {
       'batch_size': 32,
@@ -31,6 +39,8 @@ config = {
     'device': 'cuda',
     'epochs': 10,
   },
+  
+  
    
   'cv_params':{
     'n_split': 5,
@@ -65,14 +75,5 @@ config = {
     'output': './model.pth',
     'output_csv': './results/five_fold.csv',
     'submission_csv': './submission.csv',
-  },
-
-  'model': ANN, # or RandomForestRegressor
-  'ann_model_params': {
-    'input_dim': 'auto', # Always will be determined by the data shape
-    'hidden_dim': [128, 128, 64, 32],
-    'activation': "relu",
-    'use_dropout': False,
-    'drop_ratio': 0.3,
   },
 }
