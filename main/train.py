@@ -10,8 +10,18 @@ import torch.nn.functional as F
 from sklearn.preprocessing import MinMaxScaler
 from models.ANN import ANN
 from tqdm.auto import trange
+from sklearn.metrics import r2_score
 
+"""
+TODO-List
+ANN - Single, Multi channel(O)
+LSTM - Stateful
+------
+, Stateless ()
+Transformer - PatchTST
+------
 
+"""
 class TimeSeriesDataset(torch.utils.data.Dataset):
     '''
     TODO(영준)
@@ -42,16 +52,18 @@ def mae(y_pred, y_true):
 def main(cfg):
     ################ 1. Dataset Load  ################
     dataset_setting = cfg.get("dataset_setting")
+    use_single_channel = cfg.get("use_single_channel")
     main_csv = dataset_setting.get("main_csv")
     time_axis = dataset_setting.get("time_axis")
     target = dataset_setting.get("target")
     
     data = pd.read_csv(main_csv)
+    if use_single_channel:
+        data = pd.DataFrame(data.loc[:, [target, time_axis]])
     # data_only_pm25 = pd.DataFrame(data.loc[:, ["PM-2.5", "일시"]])
     data[time_axis] = pd.to_datetime(data[time_axis])
     data.index = data[time_axis]
     del data[time_axis]
-    data = data.iloc[50:, :] # TODO: 나중에 없애고 파일 자체를 2018.4 ~ 부터 저장되어있도록 바꾸기
     
     m_data = data.copy()
     m_data = m_data.dropna()
@@ -87,16 +99,11 @@ def main(cfg):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # hyperparameter
-    c_in = 22 #TODO: 자동으로 설정될 수 있도록
-    ''' 
-    TODO(영준): 자동으로 설정될 수 있도록
-    만약에 입력 포멧이 단일채널이면(c_in=1) shape = (batch_size, lookback_size)
-    멀티채널이면(c_in>1) shape = (batch_size, c_in, lookback_size)
-    if ...:
-        ddd
+    if use_single_channel:
+        c_in = 1
     else:
-        ddd
-    '''
+        x, _ = next(iter(trn_dl))
+        c_in = x.shape[1]
     
     # model stting
     model = cfg.get("model")
@@ -144,7 +151,7 @@ def main(cfg):
             x, y = next(iter(tst_dl))
             x, y = x.flatten(1).to(device), y[:,:,target_column].to(device)
             p = model(x)
-            tst_loss = F.mse_loss(p,y)
+            tst_loss = loss_func(p,y)
         pbar.set_postfix({'loss':trn_loss, 'tst_loss':tst_loss.item()})
     ##################################################
     
@@ -163,7 +170,7 @@ def main(cfg):
     ##################################################
     
     #################### 6. Plot #####################
-    plt.title(f"Neural Network, MAPE:{mape(p,y):.4f}, MAE:{mae(p,y):.4f}")
+    plt.title(f"Neural Network, MAPE:{mape(p,y):.4f}, MAE:{mae(p,y):.4f}, R2:{r2_score(p,y):.4f}")
     plt.plot(range(tst_size), y, label="True")
     plt.plot(range(tst_size), p, label="Prediction")
     plt.legend()
