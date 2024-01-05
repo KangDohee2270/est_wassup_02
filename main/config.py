@@ -19,7 +19,7 @@ config = {
   
   'model': ANN, # or RandomForestRegressor
   'ann_model_params': {
-    'hidden_dim': 512,
+    'd_hidden': 512,
     'activation': "relu",
     'use_dropout': False,
   },
