@@ -6,8 +6,9 @@ from models.LSTM import StatefulLSTM, StatelessLSTM
 from models.Transformer import PatchTST
 
 config = {
+  "use_single_channel": True,
   'dataset_setting':{
-    "main_csv": "/home/dataset/complete.csv",
+    "main_csv": "/home/dataset/complete_dataset.csv",
     "time_axis": "일시",
     "target": "PM-2.5"
   },
