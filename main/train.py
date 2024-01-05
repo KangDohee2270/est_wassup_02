@@ -101,8 +101,8 @@ def main(cfg):
     # model stting
     model = cfg.get("model")
     model_params = cfg.get("ann_model_params")
-    model_params["lookback_size"] = lookback_size
-    model_params["forecast_size"] = forecast_size
+    model_params["d_in"] = lookback_size
+    model_params["d_out"] = forecast_size
     model_params["c_in"] = c_in
     model = model(**model_params)
     model.to(device)
@@ -143,17 +143,17 @@ def main(cfg):
         with torch.inference_mode():
             x, y = next(iter(tst_dl))
             x, y = x.flatten(1).to(device), y[:,:,target_column].to(device)
-            p = net(x)
+            p = model(x)
             tst_loss = F.mse_loss(p,y)
         pbar.set_postfix({'loss':trn_loss, 'tst_loss':tst_loss.item()})
     ##################################################
     
     ################# 5. Evaluation ##################
-    net.eval()
+    model.eval()
     with torch.inference_mode():
         x, y = next(iter(tst_dl))
         x, y = x.flatten(1).to(device), y[:,:,target_column].to(device)
-        p = net(x)
+        p = model(x)
 
         y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
         p = p.cpu()/scaler.scale_[0] + scaler.min_[0]
