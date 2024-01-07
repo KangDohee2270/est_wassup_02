@@ -44,9 +44,9 @@ conda install ipykernel ipywidgets
 - data set 기간: 2018.04 - 2023.08
 - data 분석: 미세먼지/초미세먼지가 계절별로 차이가 큰 점을 확인하여 각 계절의 특징을 나타내는 컬럼들을 함께 추가함. (예시로 아래 그래프 확인)
 1) 2023년 서울특별시 미세먼지 계절별 그래프
-![image](/home/hsy/est_wassup_02/reference/pm10.png)
+![image1](./reference/pm10.png)
 2) 2023년 서울특별시 초미세먼지 계절별 그래프
-![image](/home/hsy/est_wassup_02/reference/pm2_5.png)
+![image2](./reference/pm2_5.png)
     => 계절에 따른 주요 특징: 온도, 풍향/풍속, 강수량, 일조량, 전운량, 적설양
 
 - 수집한 data set: 2018.04~2023.08에 확인된 서울특별시 대기환경 정보와 미세먼지 발생 원인을 분석하여 이와 밀접한 관련이 있는 data를 선정 후 merge.
