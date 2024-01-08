@@ -114,8 +114,8 @@ def main(cfg):
     
     # scaling
     scaler = MinMaxScaler()
-    trn_scaled = scaler.fit_transform(m_data[:-tst_size].to_numpy(dtype=np.float32))
-    tst_scaled = scaler.transform(m_data[-tst_size-lookback_size:].to_numpy(dtype=np.float32))
+    trn_scaled = scaler.fit_transform(m_data[:-tst_size].to_numpy(dtype=np.float32)).flatten()
+    tst_scaled = scaler.transform(m_data[-tst_size-lookback_size:].to_numpy(dtype=np.float32)).flatten()
 
     '''
     TODO(영준)
@@ -177,7 +177,7 @@ def main(cfg):
         model.train()
         trn_loss = .0
         for x, y in trn_dl:
-            x, y = x.flatten(1).to(device), y.to(device)   # (32, 18), (32, 4)
+            x, y = x.to(device), y.to(device)   # (32, 18), (32, 4)
             p = model(x)
             optim.zero_grad()
             loss = loss_func(p, y)
@@ -189,7 +189,7 @@ def main(cfg):
         model.eval()
         with torch.inference_mode():
             x, y = next(iter(tst_dl))
-            x, y = x.flatten(1).to(device), y.to(device)
+            x, y = x.to(device), y.to(device)
             p = model(x)
             tst_loss = loss_func(p,y)
         pbar.set_postfix({'loss':trn_loss, 'tst_loss':tst_loss.item()})
@@ -199,7 +199,7 @@ def main(cfg):
     model.eval()
     with torch.inference_mode():
         x, y = next(iter(tst_dl))
-        x, y = x.flatten(1).to(device), y.to(device)
+        x, y = x.to(device), y.to(device)
         p = model(x)
 
         y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
