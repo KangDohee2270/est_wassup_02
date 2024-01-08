@@ -219,17 +219,54 @@ def main(cfg):
     ##################################################
     
     ################# 5. Evaluation ##################
+    # model.eval()
+    # with torch.inference_mode():
+    #     x, y = next(iter(tst_dl))
+    #     x, y = x.to(device), y.to(device)
+    #     p = model(x)
+
+    #     y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
+    #     p = p.cpu()/scaler.scale_[0] + scaler.min_[0]
+
+    #     y = np.concatenate([y[:,0], y[-1,1:]])
+    #     p = np.concatenate([p[:,0], p[-1,1:]])
+    
+    eval_params = cfg.get("eval_params")
+    
     model.eval()
+    # Dynamic 방식
     with torch.inference_mode():
-        x, y = next(iter(tst_dl))
-        x, y = x.to(device), y.to(device)
-        p = model(x)
+        # tst_size=200
+        # x : -565~-200 까지의 데이터 (365)
+        # y : -200~-1 : 마지막 200 개 데이터
+        if not eval_params.get("dynamic"):
+            x, y = next(iter(tst_dl))
+            x, y = x.to(device), y.to(device)
+            p = model(x)
 
-        y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
-        p = p.cpu()/scaler.scale_[0] + scaler.min_[0]
+            y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
+            p = p.cpu()/scaler.scale_[0] + scaler.min_[0]
 
-        y = np.concatenate([y[:,0], y[-1,1:]])
-        p = np.concatenate([p[:,0], p[-1,1:]])
+            y = np.concatenate([y[:,0], y[-1,1:]])
+            p = np.concatenate([p[:,0], p[-1,1:]])
+        else:
+            prediction_size = eval_params.get("prediction_size")
+            x = torch.from_numpy(tst_scaled[:-tst_size].reshape(1, lookback_size, -1)) # (1, 365, 1)
+            y = tst_scaled[-tst_size:]
+
+            pred_list = []   
+            for _ in range(int(tst_size / prediction_size)):      
+                x = x.to(device) # shape: (1, 365, 1)
+                p = model(x) # shape: (1, 7)
+            
+                pred_list.append(p[:, :prediction_size])
+                x = torch.cat([x[: ,prediction_size:, :], p[:, :prediction_size].unsqueeze(-1)], axis=1)
+            
+            pred = torch.cat(pred_list)
+            
+            y = y.squeeze()/scaler.scale_[0] + scaler.min_[0]
+            p = pred.cpu()/scaler.scale_[0] + scaler.min_[0]
+
     ##################################################
     
     #################### 6. Plot #####################
@@ -244,7 +281,7 @@ def main(cfg):
 def get_args_parser(add_help=True):
   import argparse
   
-  parser = argparse.ArgumentParser(description="Pytorch K-fold Cross Validation", add_help=add_help)
+  parser = argparse.ArgumentParser(description="Time-Series Prediction with ANN, PatchTST", add_help=add_help)
   parser.add_argument("-c", "--config", default="./config.py", type=str, help="configuration file")
 
   return parser
