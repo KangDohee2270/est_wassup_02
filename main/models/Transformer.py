@@ -15,7 +15,7 @@ class PatchTST(nn.Module):
 
   def forward(self, x):
     # x shape: (batch_size, n_token, token_size)
-    print(x.shape)
+    # print(x.shape)
     x = self.patch_embedding(x)   # (batch_size, n_token, model_dim)
     x = x + self._pos
     x = self.transformer_encoder(x)   # (batch_size, n_token, model_dim)

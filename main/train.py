@@ -27,10 +27,11 @@ class TimeSeriesDataset(torch.utils.data.Dataset):
     TODO(영준)
     멀티 채널이 입력으로 들어갈 떄, y가 목표 컬럼만 나올 수 있도록
     '''
-    def __init__(self, ts:np.array, lookback_size:int, forecast_size:int):
+    def __init__(self, ts:np.array, lookback_size:int, forecast_size:int, target_column:int = None):
         self.lookback_size = lookback_size
         self.forecast_size = forecast_size
         self.data = ts
+        self.target_column = target_column
 
     def __len__(self):
         return len(self.data) - self.lookback_size - self.forecast_size + 1
@@ -39,8 +40,17 @@ class TimeSeriesDataset(torch.utils.data.Dataset):
         idx = (i+self.lookback_size)
         look_back = self.data[i:idx]
         forecast = self.data[idx:idx+self.forecast_size]
-
-        return look_back, forecast
+        
+        '''
+        Data shape
+        single-channel: (len_dataset, 1)
+        multi-channel: (len_dataset, c_in)
+        '''
+        if self.data.shape[1] != 1: # 컬럼 수가 1개가 아니라면
+            if not self.target_column: # 타겟 컬럼 설정이 안되어있다면
+                raise NotImplementedError("multi-columns 입력은 타겟 컬럼이 설정되어야 합니다.")
+            forecast = forecast[:,self.target_column] # (32,22) -> (32)
+        return look_back, forecast.squeeze() # squeeze : (32, 1) -> (32)
 
 def mape(y_pred, y_true):
     return (np.abs(y_pred - y_true)/y_true).mean() * 100
@@ -88,8 +98,8 @@ def main(cfg):
     trn_scaled = scaler.fit_transform(m_data[:-tst_size].to_numpy(dtype=np.float32))
     tst_scaled = scaler.transform(m_data[-tst_size-lookback_size:].to_numpy(dtype=np.float32))
 
-    trn_ds = TimeSeriesDataset(trn_scaled, lookback_size, forecast_size)
-    tst_ds = TimeSeriesDataset(tst_scaled, lookback_size, forecast_size)
+    trn_ds = TimeSeriesDataset(trn_scaled, lookback_size, forecast_size, target_column=target_column)
+    tst_ds = TimeSeriesDataset(tst_scaled, lookback_size, forecast_size, target_column=target_column)
 
     trn_dl = torch.utils.data.DataLoader(trn_ds, **data_loader_params)
     tst_dl = torch.utils.data.DataLoader(tst_ds, batch_size=tst_size, shuffle=False)
@@ -103,8 +113,9 @@ def main(cfg):
         c_in = 1
     else:
         x, _ = next(iter(trn_dl))
-        c_in = x.shape[1]
-    
+        c_in = x.shape[2]
+        
+        
     # model stting
     model = cfg.get("model")
     model_params = cfg.get("ann_model_params")
@@ -129,15 +140,7 @@ def main(cfg):
         model.train()
         trn_loss = .0
         for x, y in trn_dl:
-            '''
-            TODO(영준)
-            멀티 채널이 입력으로 들어갈 떄, y가 목표 컬럼만 나올 수 있도록 Dataset 수정
-            Before:
-                x, y = x.flatten(1).to(device), y[:,:,target_column].to(device)
-            After:
-                x, y = x.flatten(1).to(device), y.to(device)
-            '''
-            x, y = x.flatten(1).to(device), y[:,:,target_column].to(device)   # (32, 18), (32, 4)
+            x, y = x.flatten(1).to(device), y.to(device)   # (32, 18), (32, 4)
             p = model(x)
             optim.zero_grad()
             loss = loss_func(p, y)
@@ -149,7 +152,7 @@ def main(cfg):
         model.eval()
         with torch.inference_mode():
             x, y = next(iter(tst_dl))
-            x, y = x.flatten(1).to(device), y[:,:,target_column].to(device)
+            x, y = x.flatten(1).to(device), y.to(device)
             p = model(x)
             tst_loss = loss_func(p,y)
         pbar.set_postfix({'loss':trn_loss, 'tst_loss':tst_loss.item()})
@@ -159,7 +162,7 @@ def main(cfg):
     model.eval()
     with torch.inference_mode():
         x, y = next(iter(tst_dl))
-        x, y = x.flatten(1).to(device), y[:,:,target_column].to(device)
+        x, y = x.flatten(1).to(device), y.to(device)
         p = model(x)
 
         y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
