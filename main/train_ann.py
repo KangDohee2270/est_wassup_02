@@ -12,27 +12,16 @@ from models.ANN import ANN
 from tqdm.auto import trange
 from sklearn.metrics import r2_score
 
-# For PatchTST
-class PatchTSDataset(torch.utils.data.Dataset):
-  def __init__(self, ts:np.array, patch_length:int=16, n_patches:int=6, forecast_size:int=4):
-    self.P = patch_length
-    self.N = n_patches
-    self.L = int(patch_length * n_patches / 2)  # look-back window length
-    self.T = forecast_size
-    self.data = ts
+"""
+TODO-List
+ANN - Single, Multi channel(O)
+LSTM - Stateful
+------
+, Stateless ()
+Transformer - PatchTST
+------
 
-  def __len__(self):
-    return len(self.data) - self.L - self.T + 1
-
-  def __getitem__(self, i):
-    look_back = self.data[i:(i+self.L)]
-    look_back = np.concatenate([look_back, look_back[-1]*np.ones(int(self.P / 2), dtype=np.float32)])
-    x = np.array([look_back[i*int(self.P/2):(i+2)*int(self.P/2)] for i in range(self.N)])
-    y = self.data[(i+self.L):(i+self.L+self.T)]
-    return x, y
-
-
-# FOR ANN
+"""
 class TimeSeriesDataset(torch.utils.data.Dataset):
     '''
     TODO(영준)
@@ -94,18 +83,10 @@ def main(cfg):
     ############### 2. Preprocessing  ################
     # hyperparameter
     window_params = cfg.get("window_params")
-    tst_size = cfg.get("tst_size")
-
-    if "lookback_size" in window_params.keys():
-        #for ANN
-        lookback_size = window_params.get("lookback_size")
-    else:
-        # for Transformer
-        patch_length = 16
-        n_patches = 8
-        lookback_size = int(patch_length * n_patches / 2) # same as "window_size" of patchtst
-        
-    forecast_size = window_params.get("forecast_size") # same as "prediction_length" for patchtst
+    tst_size = window_params.get("tst_size")
+    lookback_size = window_params.get("lookback_size")
+    forecast_size = window_params.get("forecast_size")
+    
     train_params = cfg.get("train_params")
     epochs = train_params.get("epochs")
     data_loader_params = train_params.get("data_loader_params")
@@ -114,23 +95,11 @@ def main(cfg):
     
     # scaling
     scaler = MinMaxScaler()
-    trn_scaled = scaler.fit_transform(m_data[:-tst_size].to_numpy(dtype=np.float32)).flatten()
-    tst_scaled = scaler.transform(m_data[-tst_size-lookback_size:].to_numpy(dtype=np.float32)).flatten()
+    trn_scaled = scaler.fit_transform(m_data[:-tst_size].to_numpy(dtype=np.float32))
+    tst_scaled = scaler.transform(m_data[-tst_size-lookback_size:].to_numpy(dtype=np.float32))
 
-    '''
-    TODO(영준)
-        모델의 종류에 따라서 데이터셋 class가 선택되도록
-        model = cfg.get("model")
-        if (model class가 models.ANN의 ANN이라면):
-            dataset_class = TimeSeriesDataset
-        elif (model class가 models.transformer의 patchTST라면):
-            dataset_class = PatchTSTClass
-    참고:
-        isinstance(변수, 클래스 이름): 해당 변수가 클래스에 속하는지
-    '''   
-    model = cfg.get("model")
-    trn_ds = PatchTSDataset(trn_scaled, **window_params)
-    tst_ds = PatchTSDataset(tst_scaled, **window_params)
+    trn_ds = TimeSeriesDataset(trn_scaled, lookback_size, forecast_size, target_column=target_column)
+    tst_ds = TimeSeriesDataset(tst_scaled, lookback_size, forecast_size, target_column=target_column)
 
     trn_dl = torch.utils.data.DataLoader(trn_ds, **data_loader_params)
     tst_dl = torch.utils.data.DataLoader(tst_ds, batch_size=tst_size, shuffle=False)
@@ -148,17 +117,11 @@ def main(cfg):
         
         
     # model stting
-    # for ANN
-    # model_params["d_in"] = lookback_size
-    # model_params["d_out"] = forecast_size
-    # model_params["c_in"] = c_in
-    
-    # for patchTST
-    model_params = cfg.get("model_params")
-    model_params["n_token"] = n_patches
-    model_params["input_dim"] = patch_length
-    model_params["output_dim"] = forecast_size
-    
+    model = cfg.get("model")
+    model_params = cfg.get("ann_model_params")
+    model_params["d_in"] = lookback_size
+    model_params["d_out"] = forecast_size
+    model_params["c_in"] = c_in
     model = model(**model_params)
     model.to(device)
     
@@ -177,7 +140,7 @@ def main(cfg):
         model.train()
         trn_loss = .0
         for x, y in trn_dl:
-            x, y = x.to(device), y.to(device)   # (32, 18), (32, 4)
+            x, y = x.flatten(1).to(device), y.to(device)   # (32, 18), (32, 4)
             p = model(x)
             optim.zero_grad()
             loss = loss_func(p, y)
@@ -189,7 +152,7 @@ def main(cfg):
         model.eval()
         with torch.inference_mode():
             x, y = next(iter(tst_dl))
-            x, y = x.to(device), y.to(device)
+            x, y = x.flatten(1).to(device), y.to(device)
             p = model(x)
             tst_loss = loss_func(p,y)
         pbar.set_postfix({'loss':trn_loss, 'tst_loss':tst_loss.item()})
@@ -199,7 +162,7 @@ def main(cfg):
     model.eval()
     with torch.inference_mode():
         x, y = next(iter(tst_dl))
-        x, y = x.to(device), y.to(device)
+        x, y = x.flatten(1).to(device), y.to(device)
         p = model(x)
 
         y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
@@ -222,7 +185,7 @@ def get_args_parser(add_help=True):
   import argparse
   
   parser = argparse.ArgumentParser(description="Pytorch K-fold Cross Validation", add_help=add_help)
-  parser.add_argument("-c", "--config", default="./config_patchtst.py", type=str, help="configuration file")
+  parser.add_argument("-c", "--config", default="./config.py", type=str, help="configuration file")
 
   return parser
 

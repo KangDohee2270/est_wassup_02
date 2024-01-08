@@ -6,7 +6,7 @@ from models.LSTM import StatefulLSTM, StatelessLSTM
 from models.Transformer import PatchTST
 
 config = {
-  "use_single_channel": True,
+  "use_single_channel": False,
   'dataset_setting':{
     "main_csv": "/home/dataset/complete_dataset.csv",
     "time_axis": "일시",
@@ -14,14 +14,14 @@ config = {
   },
   "window_params":{
     "patch_length": 16,
-    "n_patches": 8,
-    "forecast_size": 4
+    "n_patches": 24,
+    "forecast_size": 7
   },
   "tst_size": 200,
   
   'model': PatchTST, # or RandomForestRegressor
   'model_params': {
-    "model_dim": 512, 
+    "model_dim": 128, 
     "num_heads": 8, 
     "num_layers": 4
   },
@@ -39,7 +39,7 @@ config = {
     },
     'metric': torchmetrics.MeanSquaredError(squared=False),
     'device': 'cuda',
-    'epochs': 100,
+    'epochs': 10,
   },
   
   

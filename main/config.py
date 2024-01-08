@@ -13,13 +13,13 @@ config = {
     "target": "PM-2.5"
   },
   "window_params":{
-    "tst_size": 200,
     "lookback_size": 9,
     "forecast_size": 4
   },
+  "tst_size": 200,
   
   'model': ANN, # or RandomForestRegressor
-  'ann_model_params': {
+  'model_params': {
     'd_hidden': 512,
     'activation': F.relu,
   },
@@ -37,7 +37,7 @@ config = {
     },
     'metric': torchmetrics.MeanSquaredError(squared=False),
     'device': 'cuda',
-    'epochs': 10,
+    'epochs': 100,
   },
   
   

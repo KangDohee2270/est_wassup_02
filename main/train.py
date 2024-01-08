@@ -9,19 +9,31 @@ import torch.nn.functional as F
 
 from sklearn.preprocessing import MinMaxScaler
 from models.ANN import ANN
+from models.Transformer import PatchTST
 from tqdm.auto import trange
 from sklearn.metrics import r2_score
 
-"""
-TODO-List
-ANN - Single, Multi channel(O)
-LSTM - Stateful
-------
-, Stateless ()
-Transformer - PatchTST
-------
+# For PatchTST
+class PatchTSDataset(torch.utils.data.Dataset):
+  def __init__(self, ts:np.array, patch_length:int=16, n_patches:int=6, forecast_size:int=4):
+    self.P = patch_length
+    self.N = n_patches
+    self.L = int(patch_length * n_patches / 2)  # look-back window length
+    self.T = forecast_size
+    self.data = ts.squeeze()
 
-"""
+  def __len__(self):
+    return len(self.data) - self.L - self.T + 1
+
+  def __getitem__(self, i):
+    look_back = self.data[i:(i+self.L)]
+    look_back = np.concatenate([look_back, look_back[-1]*np.ones(int(self.P / 2), dtype=np.float32)])
+    x = np.array([look_back[i*int(self.P/2):(i+2)*int(self.P/2)] for i in range(self.N)])
+    y = self.data[(i+self.L):(i+self.L+self.T)]
+    return x, y
+
+
+# FOR ANN
 class TimeSeriesDataset(torch.utils.data.Dataset):
     '''
     TODO(영준)
@@ -75,18 +87,35 @@ def main(cfg):
     data.index = data[time_axis]
     del data[time_axis]
     
-    m_data = data.copy()
-    m_data = m_data.dropna()
+    data = data.dropna()
     target_column = data.columns.get_loc(target)
+    
+    # hyperparameter
+    if use_single_channel:
+        c_in = 1
+    else:
+        c_in = data.shape[1]
+        
     ##################################################
     
     ############### 2. Preprocessing  ################
     # hyperparameter
     window_params = cfg.get("window_params")
-    tst_size = window_params.get("tst_size")
-    lookback_size = window_params.get("lookback_size")
-    forecast_size = window_params.get("forecast_size")
+    tst_size = cfg.get("tst_size")
+
+    model = cfg.get("model")
     
+    if model == ANN:
+        #for ANN
+        lookback_size = window_params.get("lookback_size")
+        window_params["target_column"] = None if use_single_channel else target_column 
+    elif model == PatchTST:
+        # for Transformer
+        patch_length = window_params.get("patch_length")
+        n_patches = window_params.get("n_patches")
+        lookback_size = int(patch_length * n_patches / 2) # same as "window_size" of patchtst
+        
+    forecast_size = window_params.get("forecast_size") # same as "prediction_length" for patchtst
     train_params = cfg.get("train_params")
     epochs = train_params.get("epochs")
     data_loader_params = train_params.get("data_loader_params")
@@ -94,34 +123,65 @@ def main(cfg):
     # 결측치 처리는 완전히 되었다고 가정
     
     # scaling
+    '''
+    TODO(영준)
+        모델의 종류에 따라서 데이터셋 class가 선택되도록
+        model = cfg.get("model")
+        if (model class가 models.ANN의 ANN이라면):
+            dataset_class = TimeSeriesDataset
+        elif (model class가 models.transformer의 patchTST라면):
+            dataset_class = PatchTSTClass
+    참고:
+        isinstance(변수, 클래스 이름): 해당 변수가 클래스에 속하는지
+    '''
+
+    if model == ANN:
+        dt_class = TimeSeriesDataset
+    elif model == PatchTST:
+        dt_class = PatchTSDataset
+    
     scaler = MinMaxScaler()
-    trn_scaled = scaler.fit_transform(m_data[:-tst_size].to_numpy(dtype=np.float32))
-    tst_scaled = scaler.transform(m_data[-tst_size-lookback_size:].to_numpy(dtype=np.float32))
+    target_scaler = MinMaxScaler()
+    
+    if model == ANN or use_single_channel:
+        trn_scaled = scaler.fit_transform(data[:-tst_size].to_numpy(dtype=np.float32))
+        tst_scaled = scaler.transform(data[-tst_size-lookback_size:].to_numpy(dtype=np.float32))
+        trn_ds = dt_class(trn_scaled, **window_params)
+    else:
+        # trn setting
+        data_scaled = scaler.fit_transform(data.to_numpy(dtype=np.float32))
+        trn_list = [data_scaled[:-tst_size, i].flatten() for i in range(c_in)]
+        trn_ds_list = [dt_class(trn_list[i], **window_params) for i in range(c_in)]
+        trn_ds = torch.utils.data.ConcatDataset(trn_ds_list)
 
-    trn_ds = TimeSeriesDataset(trn_scaled, lookback_size, forecast_size, target_column=target_column)
-    tst_ds = TimeSeriesDataset(tst_scaled, lookback_size, forecast_size, target_column=target_column)
-
+        # tst setting
+        scaler_target = MinMaxScaler()
+        target_scaled = scaler_target.fit_transform(data.iloc[:, target_column:target_column+1].to_numpy(dtype=np.float32))
+        tst_scaled = target_scaled[-tst_size-lookback_size:].flatten()
+    
     trn_dl = torch.utils.data.DataLoader(trn_ds, **data_loader_params)
+    
+    tst_ds = dt_class(tst_scaled, **window_params)
     tst_dl = torch.utils.data.DataLoader(tst_ds, batch_size=tst_size, shuffle=False)
     ##################################################
     
     ########## 3. Train Hyperparams setting ##########
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # hyperparameter
-    if use_single_channel:
-        c_in = 1
-    else:
-        x, _ = next(iter(trn_dl))
-        c_in = x.shape[2]
-        
         
     # model stting
-    model = cfg.get("model")
-    model_params = cfg.get("ann_model_params")
-    model_params["d_in"] = lookback_size
-    model_params["d_out"] = forecast_size
-    model_params["c_in"] = c_in
+    model_params = cfg.get("model_params")
+    # for ANN
+    if model == ANN:
+        model_params["d_in"] = lookback_size
+        model_params["d_out"] = forecast_size
+        model_params["c_in"] = c_in
+    
+    # for patchTST
+    elif model == PatchTST:
+        model_params["n_token"] = n_patches
+        model_params["input_dim"] = patch_length
+        model_params["output_dim"] = forecast_size
+    
     model = model(**model_params)
     model.to(device)
     
@@ -140,7 +200,7 @@ def main(cfg):
         model.train()
         trn_loss = .0
         for x, y in trn_dl:
-            x, y = x.flatten(1).to(device), y.to(device)   # (32, 18), (32, 4)
+            x, y = x.to(device), y.to(device)   # (32, 18), (32, 4)
             p = model(x)
             optim.zero_grad()
             loss = loss_func(p, y)
@@ -152,7 +212,7 @@ def main(cfg):
         model.eval()
         with torch.inference_mode():
             x, y = next(iter(tst_dl))
-            x, y = x.flatten(1).to(device), y.to(device)
+            x, y = x.to(device), y.to(device)
             p = model(x)
             tst_loss = loss_func(p,y)
         pbar.set_postfix({'loss':trn_loss, 'tst_loss':tst_loss.item()})
@@ -162,7 +222,7 @@ def main(cfg):
     model.eval()
     with torch.inference_mode():
         x, y = next(iter(tst_dl))
-        x, y = x.flatten(1).to(device), y.to(device)
+        x, y = x.to(device), y.to(device)
         p = model(x)
 
         y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
