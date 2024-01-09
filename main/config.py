@@ -13,8 +13,8 @@ config = {
     "target": "PM-2.5"
   },
   "window_params":{
-    "lookback_size": 9,
-    "forecast_size": 4
+    "lookback_size": 365,
+    "forecast_size": 7
   },
   "tst_size": 200,
   
@@ -39,41 +39,14 @@ config = {
     'device': 'cuda',
     'epochs': 100,
   },
-  
-  
-   
-  'cv_params':{
-    'n_split': 5,
+  'eval_params':{
+      "dynamic": False,
+      "prediction_size": 1
   },
-  
-    
-   'preprocess' : {
-      "features":  ['lane_count', 'road_rating', 'maximum_speed_limit',
-                  'weight_restricted', 'month', 'rough_road_name', 
-                  'line_number', 'start_latitude_enc', 'end_latitude_enc','end_turn_restricted','start_turn_restricted', 'weight_restricted_enc',
-                  "base_hour", "peak_season", 'multi_linked', 'connect_code', 'peak_hour'],
-      "train-csv": "/home/data/train_last.csv",
-      "test-csv" : "/home/data/test_last.csv",
-      "output-train-feas-csv" : "./data/trn_X.csv",
-      "output-test-feas-csv" : "./data/tst_X.csv", 
-      "output-train-target-csv" : "./data/trn_y.csv", 
-      "output-test-target-csv" : "./data/tst_y.csv", 
-      "encoding-columns": ['start_turn_restricted', 'end_turn_restricted'],
-      "scale-columns" : [], 
-      "target-col" : "target",
-      "scaler" : "None"
-  },
-  'wandb':{
-      'use_wandb': False,
-      'wandb_runname': "test",
-      },
-  
-  'files': {
-    'X_csv': './data/trn_X.csv',
-    'y_csv': './data/trn_y.csv',
-    'X_test_csv': './data/tst_X.csv',
-    'output': './model.pth',
-    'output_csv': './results/five_fold.csv',
-    'submission_csv': './submission.csv',
-  },
+
+  "save_files":{
+      "csv": "csv/ANN.csv",
+      "graph": "figs/graph.jpg"
+  }
+
 }
