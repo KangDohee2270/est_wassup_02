@@ -214,6 +214,22 @@ def main(cfg):
     plt.savefig("figs/train_loss.jpg", format="jpeg")
     plt.cla()
     
-    path = "000.pth"
+    path = "a.pth" #path - config 쌍이 잘 정리가 되어있어야 한다
     torch.save(model.state_dict(), path)
+    print("done")
+    # a 모델은 hidden_dim을 64ㄹ
     ##################################################
+    
+def get_args_parser(add_help=True):
+  import argparse
+  
+  parser = argparse.ArgumentParser(description="Time-Series Prediction with ANN, PatchTST", add_help=add_help)
+  parser.add_argument("-c", "--config", default="./config_patchtst.py", type=str, help="configuration file")
+
+  return parser
+
+if __name__ == "__main__":
+  args = get_args_parser().parse_args()
+  exec(open(args.config).read())
+  
+  main(config)
