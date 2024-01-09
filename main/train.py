@@ -70,6 +70,11 @@ def mse_func(y_pred, y_true):
 def rmse_func(y_pred, y_true):
     return np.sqrt(np.square(y_true-y_pred).mean())
 
+def mape_func(y_pred, y_true):
+    return (np.abs(y_pred - y_true)/y_true).mean() * 100
+
+def mae_func(y_pred, y_true):
+    return np.abs(y_pred - y_true).mean()
 
 def main(cfg):
     ################ 1. Dataset Load  ################
@@ -141,7 +146,6 @@ def main(cfg):
         dt_class = PatchTSDataset
     
     scaler = MinMaxScaler()
-    target_scaler = MinMaxScaler()
     
     if model == ANN or use_single_channel:
         trn_scaled = scaler.fit_transform(data[:-tst_size].to_numpy(dtype=np.float32))
@@ -196,6 +200,7 @@ def main(cfg):
     ##################################################
     
     ################### 4. Train #####################
+    trn_loss_list = []
     for i in pbar:
         model.train()
         trn_loss = .0
@@ -215,7 +220,12 @@ def main(cfg):
             x, y = x.to(device), y.to(device)
             p = model(x)
             tst_loss = loss_func(p,y)
+        trn_loss_list.append(trn_loss)
         pbar.set_postfix({'loss':trn_loss, 'tst_loss':tst_loss.item()})
+    plt.title(f"Train loss graph")
+    plt.plot(range(len(trn_loss_list)), trn_loss_list)
+    plt.savefig("figs/train_loss.jpg", format="jpeg")
+    plt.cla()
     ##################################################
     
     ################# 5. Evaluation ##################
@@ -256,7 +266,7 @@ def main(cfg):
 
             pred_list = []   
             for _ in range(int(tst_size / prediction_size)):      
-                x = x.to(device) # shape: (1, 365, 1)
+                x = x.to(device) # shape: (1, 365, 22)
                 p = model(x) # shape: (1, 7)
             
                 pred_list.append(p[:, :prediction_size])
@@ -271,11 +281,11 @@ def main(cfg):
     
     ################ 6. Plot and save ################
     save_files_path = cfg.get("save_files")
-    mse, rmse, r2 = mse_func(p,y), rmse_func(p,y), r2_score(p,y)
-    result = {"Result": {"MSE": mse, "RMSE": rmse, "R2": r2}}
+    mse, rmse, r2, mae, mape = mse_func(p,y), rmse_func(p,y), r2_score(p,y), mae_func(p,y), mape_func(p,y)
+    result = {"Result": {"MSE": mse, "RMSE": rmse, "R2": r2, "MAE": mae, "MAPE": mape}}
     
     csv_path, graph_path = save_files_path.get("csv"), save_files_path.get("graph")
-    plt.title(f"Neural Network, MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}")
+    plt.title(f"Neural Network, MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
     plt.plot(range(tst_size), y, label="True")
     plt.plot(range(tst_size), p, label="Prediction")
     plt.legend()
