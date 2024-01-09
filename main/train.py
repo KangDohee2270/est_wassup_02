@@ -64,11 +64,11 @@ class TimeSeriesDataset(torch.utils.data.Dataset):
             forecast = forecast[:,self.target_column] # (32,22) -> (32)
         return look_back, forecast.squeeze() # squeeze : (32, 1) -> (32)
 
-def mape(y_pred, y_true):
-    return (np.abs(y_pred - y_true)/y_true).mean() * 100
+def mse_func(y_pred, y_true):
+    return np.square(y_true-y_pred).mean()
 
-def mae(y_pred, y_true):
-    return np.abs(y_pred - y_true).mean()
+def rmse_func(y_pred, y_true):
+    return np.sqrt(np.square(y_true-y_pred).mean())
 
 
 def main(cfg):
@@ -269,12 +269,19 @@ def main(cfg):
 
     ##################################################
     
-    #################### 6. Plot #####################
-    plt.title(f"Neural Network, MAPE:{mape(p,y):.4f}, MAE:{mae(p,y):.4f}, R2:{r2_score(p,y):.4f}")
+    ################ 6. Plot and save ################
+    save_files_path = cfg.get("save_files")
+    mse, rmse, r2 = mse_func(p,y), rmse_func(p,y), r2_score(p,y)
+    result = {"Result": {"MSE": mse, "RMSE": rmse, "R2": r2}}
+    
+    csv_path, graph_path = save_files_path.get("csv"), save_files_path.get("graph")
+    plt.title(f"Neural Network, MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}")
     plt.plot(range(tst_size), y, label="True")
     plt.plot(range(tst_size), p, label="Prediction")
     plt.legend()
-    plt.savefig("figs/graph.jpg", format="jpeg")
+
+    pd.DataFrame(result).to_csv(csv_path)
+    plt.savefig(graph_path, format="jpeg")
     ##################################################
     
 

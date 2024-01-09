@@ -45,5 +45,10 @@ config = {
   'eval_params':{
       "dynamic": False,
       "prediction_size": 1
+  },
+
+  "save_files":{
+      "csv": "csv/ANN.csv",
+      "graph": "figs/graph.jpg"
   }
 }
