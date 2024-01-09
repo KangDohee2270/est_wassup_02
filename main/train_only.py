@@ -154,7 +154,7 @@ def main(cfg):
     trn_dl = torch.utils.data.DataLoader(trn_ds, **data_loader_params)
     
     tst_ds = dt_class(tst_scaled, **window_params)
-    tst_dl = torch.utils.data.DataLoader(tst_ds, batch_size=1, shuffle=False)
+    tst_dl = torch.utils.data.DataLoader(tst_ds, batch_size=tst_size, shuffle=False)
     ##################################################
     
     ########## 3. Train Hyperparams setting ##########
