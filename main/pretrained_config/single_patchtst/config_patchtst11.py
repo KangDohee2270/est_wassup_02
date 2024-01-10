@@ -17,13 +17,13 @@ config = {
     "n_patches": 24,
     "forecast_size": 7
   },
-  "tst_size": 365,
+  "tst_size": 200,
   
   'model': PatchTST, # or RandomForestRegressor
   'model_params': {
     "model_dim": 256, 
     "num_heads": 8, 
-    "num_layers": 6
+    "num_layers": 12
   },
   
   
@@ -48,7 +48,8 @@ config = {
   },
 
   "save_files":{
-      "csv": "csv/patchtst_single/patchtst11.csv",
-      "graph": "figs/graph11.jpg"
+      "csv": "csv/single_patchtst/patchtst11.csv",
+      "day": "figs/single_patchtst/everyday/graph11.jpg",
+      "peak": "figs/single_patchtst/peakday/config11/"
   }
 }
