@@ -46,7 +46,8 @@ config = {
 
   "save_files":{
       "csv": "csv/ANN.csv",
-      "graph": "figs/graph.jpg"
+      "day": "./figs/everyday.jpg",
+      "peak": "./figs/peakday/"
   }
 
 }
