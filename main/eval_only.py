@@ -181,7 +181,7 @@ def main(cfg):
     
     ################# 5. Evaluation ##################
     eval_params = cfg.get("eval_params")
-    model.load_state_dict(torch.load("/home/kdh/est_wassup_02/main/pretrained_models/patch_tst2.pth"))
+    model.load_state_dict(torch.load("/home/jyj/est_wassup_02/main/models/pretrained_models/multi_patchtst/patch_tst5.pth"))
     model.eval()
     
     with torch.inference_mode():
@@ -264,7 +264,7 @@ def get_args_parser(add_help=True):
   import argparse
   
   parser = argparse.ArgumentParser(description="Time-Series Prediction with ANN, PatchTST", add_help=add_help)
-  parser.add_argument("-c", "--config", default="./config_patchtst_tst2.py", type=str, help="configuration file")
+  parser.add_argument("-c", "--config", default="./models/pretrained_config/multi_patchtst/config_patchtst5.py", type=str, help="configuration file")
 
   return parser
 
