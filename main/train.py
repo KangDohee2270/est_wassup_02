@@ -213,7 +213,7 @@ def main(cfg):
         pbar.set_postfix({'loss':trn_loss, 'tst_loss':tst_loss.item()})
     plt.title(f"Train loss graph")
     plt.plot(range(len(trn_loss_list)), trn_loss_list)
-    plt.savefig("figs/single_patchtst/train_loss14.jpg", format="jpeg")
+    plt.savefig("figs/single_patchtst/train_loss13.jpg", format="jpeg")
     plt.cla()
     
     pth_save_path = "a.pth"
@@ -310,7 +310,7 @@ def get_args_parser(add_help=True):
   import argparse
   
   parser = argparse.ArgumentParser(description="Time-Series Prediction with ANN, PatchTST", add_help=add_help)
-  parser.add_argument("-c", "--config", default="pretrained_config/single_patchtst/config_patchtst14.py", type=str, help="configuration file")
+  parser.add_argument("-c", "--config", default="pretrained_config/single_patchtst/config_patchtst6.py", type=str, help="configuration file")
 
   return parser
 
