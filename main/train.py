@@ -65,16 +65,16 @@ class TimeSeriesDataset(torch.utils.data.Dataset):
         return look_back, forecast.squeeze() # squeeze : (32, 1) -> (32)
 
 def mse_func(y_pred, y_true):
-    return np.square(y_true-y_pred).mean()
+    return float(np.square(y_true-y_pred).mean())
 
 def rmse_func(y_pred, y_true):
-    return np.sqrt(np.square(y_true-y_pred).mean())
+    return float(np.sqrt(np.square(y_true-y_pred).mean()))
 
 def mape_func(y_pred, y_true):
-    return (np.abs(y_pred - y_true)/y_true).mean() * 100
+    return float((np.abs((y_pred - y_true)/y_true)).mean()) * 100
 
 def mae_func(y_pred, y_true):
-    return np.abs(y_pred - y_true).mean()
+    return float(np.abs(y_pred - y_true).mean())
 
 def main(cfg):
     ################ 1. Dataset Load  ################
@@ -128,17 +128,6 @@ def main(cfg):
     # 결측치 처리는 완전히 되었다고 가정
     
     # scaling
-    '''
-    TODO(영준)
-        모델의 종류에 따라서 데이터셋 class가 선택되도록
-        model = cfg.get("model")
-        if (model class가 models.ANN의 ANN이라면):
-            dataset_class = TimeSeriesDataset
-        elif (model class가 models.transformer의 patchTST라면):
-            dataset_class = PatchTSTClass
-    참고:
-        isinstance(변수, 클래스 이름): 해당 변수가 클래스에 속하는지
-    '''
 
     if model == ANN:
         dt_class = TimeSeriesDataset
@@ -226,25 +215,18 @@ def main(cfg):
     plt.plot(range(len(trn_loss_list)), trn_loss_list)
     plt.savefig("figs/train_loss.jpg", format="jpeg")
     plt.cla()
+    
+    pth_save_path = "a.pth"
+    
+    torch.save(model.state_dict(), pth_save_path)
+    print("done")
     ##################################################
     
     ################# 5. Evaluation ##################
-    # model.eval()
-    # with torch.inference_mode():
-    #     x, y = next(iter(tst_dl))
-    #     x, y = x.to(device), y.to(device)
-    #     p = model(x)
-
-    #     y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
-    #     p = p.cpu()/scaler.scale_[0] + scaler.min_[0]
-
-    #     y = np.concatenate([y[:,0], y[-1,1:]])
-    #     p = np.concatenate([p[:,0], p[-1,1:]])
-    
     eval_params = cfg.get("eval_params")
-    
+    model.load_state_dict(torch.load(pth_save_path))
     model.eval()
-    # Dynamic 방식
+    
     with torch.inference_mode():
         # tst_size=200
         # x : -565~-200 까지의 데이터 (365)
@@ -252,13 +234,19 @@ def main(cfg):
         if not eval_params.get("dynamic"):
             x, y = next(iter(tst_dl))
             x, y = x.to(device), y.to(device)
+            print(x.shape, y.shape)
             p = model(x)
+            if use_single_channel:
+                y = y.cpu()/scaler.scale_[0] + scaler.min_[0] #shape: (200 - 7 + 1, 7)
+                p = p.cpu()/scaler.scale_[0] + scaler.min_[0] #shape: (200 - 7 + 1, 7)
+            else:
+                y = y.cpu()/scaler.scale_[target_column] + scaler.min_[target_column] #shape: (200 - 7 + 1, 7)
+                p = p.cpu()/scaler.scale_[target_column] + scaler.min_[target_column] #shape: (200 - 7 + 1, 7)
 
-            y = y.cpu()/scaler.scale_[0] + scaler.min_[0]
-            p = p.cpu()/scaler.scale_[0] + scaler.min_[0]
-
-            y = np.concatenate([y[:,0], y[-1,1:]])
-            p = np.concatenate([p[:,0], p[-1,1:]])
+            
+            total_y = np.concatenate([y[:,0], y[-1,1:]])
+            total_p = np.concatenate([p[:,0], p[-1,1:]])
+             
         else:
             prediction_size = eval_params.get("prediction_size")
             x = torch.from_numpy(tst_scaled[:-tst_size].reshape(1, lookback_size, -1)) # (1, 365, 1)
@@ -280,18 +268,41 @@ def main(cfg):
     ##################################################
     
     ################ 6. Plot and save ################
+    # 36: 초미세먼지 수치가 "나쁨" 인 기중
+    peak_idx = np.unique(np.where(y > 36)[0])
+    print(y.shape)
+    print(peak_idx)
+    peak_y, peak_p = y[peak_idx], p[peak_idx]
     save_files_path = cfg.get("save_files")
+    csv_path, day_path, peak_path = save_files_path.get("csv"), save_files_path.get("day"), save_files_path.get("peak")
+
+    # 평균 오차 저장
     mse, rmse, r2, mae, mape = mse_func(p,y), rmse_func(p,y), r2_score(p,y), mae_func(p,y), mape_func(p,y)
-    result = {"Result": {"MSE": mse, "RMSE": rmse, "R2": r2, "MAE": mae, "MAPE": mape}}
+    peak_mse, peak_rmse, peak_r2, peak_mae, peak_mape = mse_func(peak_p,peak_y), rmse_func(peak_p,peak_y), r2_score(peak_p,peak_y), mae_func(peak_p,peak_y), mape_func(peak_p,peak_y)
+    result = {"Result_everyday": {"MSE": mse, "RMSE": rmse, "R2": r2, "MAE": mae, "MAPE": mape},
+              "Result_peak": {"MSE": peak_mse, "RMSE": peak_rmse, "R2": peak_r2, "MAE": peak_mae, "MAPE": peak_mape}}
     
-    csv_path, graph_path = save_files_path.get("csv"), save_files_path.get("graph")
-    plt.title(f"Neural Network, MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
-    plt.plot(range(tst_size), y, label="True")
-    plt.plot(range(tst_size), p, label="Prediction")
+    # 건수 says, 매일매일 데이터는 기존 방식처럼 하나씩 그려도 될것 같음
+    
+    pd.DataFrame(result).to_csv(csv_path)
+    
+    plt.title(f"MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
+    plt.plot(range(tst_size), total_y, label="True")
+    plt.plot(range(tst_size), total_p, label="Prediction")
     plt.legend()
 
-    pd.DataFrame(result).to_csv(csv_path)
-    plt.savefig(graph_path, format="jpeg")
+    plt.savefig(day_path, format="jpeg")
+    plt.cla()
+        
+    for i in peak_idx:
+        mse, rmse, r2, mae, mape = mse_func(p[i],y[i]), rmse_func(p[i],y[i]), r2_score(p[i],y[i]), mae_func(p[i],y[i]), mape_func(p[i],y[i])
+        plt.title(f"MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
+        plt.plot(range(forecast_size), y[i], label="True")
+        plt.plot(range(forecast_size), p[i], label="Prediction")
+        plt.legend()
+
+        plt.savefig(peak_path + f"{i}.jpg", format="jpeg")
+        plt.cla()
     ##################################################
     
 
