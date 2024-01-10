@@ -17,7 +17,7 @@ config = {
     "n_patches": 24,
     "forecast_size": 7
   },
-  "tst_size": 200,
+  "tst_size": 365,
   
   'model': PatchTST, # or RandomForestRegressor
   'model_params': {
@@ -35,7 +35,7 @@ config = {
     'loss': F.mse_loss,
     'optim': torch.optim.AdamW,
     'optim_params': {
-      'lr': 0.001, # 0.001~0.0001
+      'lr': 0.00, # 0.001~0.0001
     },
     'metric': torchmetrics.MeanSquaredError(squared=False),
     'device': 'cuda',

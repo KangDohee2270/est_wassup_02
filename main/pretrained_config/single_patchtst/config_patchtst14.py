@@ -17,19 +17,19 @@ config = {
     "n_patches": 24,
     "forecast_size": 7
   },
-  "tst_size": 200,
+  "tst_size": 365,
   
   'model': PatchTST, # or RandomForestRegressor
   'model_params': {
-    "model_dim": 128, 
+    "model_dim": 512, 
     "num_heads": 8, 
-    "num_layers": 4
+    "num_layers": 16
   },
   
   
   'train_params': {
     'data_loader_params': {
-      'batch_size': 32,
+      'batch_size': 128,
       'shuffle': True,
     },
     'loss': F.mse_loss,
@@ -39,7 +39,7 @@ config = {
     },
     'metric': torchmetrics.MeanSquaredError(squared=False),
     'device': 'cuda',
-    'epochs': 5,
+    'epochs': 100,
   },
   
   'eval_params':{
@@ -48,7 +48,8 @@ config = {
   },
 
   "save_files":{
-      "csv": "csv/patchtst_single/patchtst14.csv",
-      "graph": "figs/single_patchtst/everyday/graph14.jpg"
+      "csv": "csv/single_patchtst/patchtst14.csv",
+      "day": "figs/single_patchtst/everyday/graph14.jpg",
+      "peak": "figs/single_patchtst/peakday/"
   }
 }
