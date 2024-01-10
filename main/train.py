@@ -286,7 +286,7 @@ def main(cfg):
     
     pd.DataFrame(result).to_csv(csv_path)
     
-    plt.title(f"MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
+    plt.title(f"PatchTST, MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
     plt.plot(range(tst_size), total_y, label="True")
     plt.plot(range(tst_size), total_p, label="Prediction")
     plt.legend()
@@ -296,7 +296,7 @@ def main(cfg):
         
     for i in peak_idx:
         mse, rmse, r2, mae, mape = mse_func(p[i],y[i]), rmse_func(p[i],y[i]), r2_score(p[i],y[i]), mae_func(p[i],y[i]), mape_func(p[i],y[i])
-        plt.title(f"MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
+        plt.title(f"PatchTST, MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
         plt.plot(range(forecast_size), y[i], label="True")
         plt.plot(range(forecast_size), p[i], label="Prediction")
         plt.legend()
@@ -310,7 +310,7 @@ def get_args_parser(add_help=True):
   import argparse
   
   parser = argparse.ArgumentParser(description="Time-Series Prediction with ANN, PatchTST", add_help=add_help)
-  parser.add_argument("-c", "--config", default="pretrained_config/single_patchtst/config_patchtst6.py", type=str, help="configuration file")
+  parser.add_argument("-c", "--config", default="pretrained_config/single_patchtst/config_patchtst10.py", type=str, help="configuration file")
 
   return parser
 

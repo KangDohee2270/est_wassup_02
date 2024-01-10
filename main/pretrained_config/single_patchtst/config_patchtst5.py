@@ -17,13 +17,13 @@ config = {
     "n_patches": 24,
     "forecast_size": 7
   },
-  "tst_size": 365,
+  "tst_size": 200,
   
   'model': PatchTST, # or RandomForestRegressor
   'model_params': {
-    "model_dim": 256, 
-    "num_heads": 8, 
-    "num_layers": 6
+    "model_dim": 16, 
+    "num_heads": 4, 
+    "num_layers": 5
   },
   
   
@@ -39,7 +39,7 @@ config = {
     },
     'metric': torchmetrics.MeanSquaredError(squared=False),
     'device': 'cuda',
-    'epochs': 10,
+    'epochs': 600,
   },
   
   'eval_params':{
