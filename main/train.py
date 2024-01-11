@@ -311,7 +311,7 @@ def get_args_parser(add_help=True):
   import argparse
   
   parser = argparse.ArgumentParser(description="Time-Series Prediction with ANN, PatchTST", add_help=add_help)
-  parser.add_argument("-c", "--config", default="pretrained_config/single_patchtst/long_term/config_patchtst6.py", type=str, help="configuration file")
+  parser.add_argument("-c", "--config", default="pretrained_config/single_patchtst/long_term/config_patchtst03.py", type=str, help="configuration file")
 
   return parser
 
