@@ -21,7 +21,7 @@ config = {
   
   'model': PatchTST, # or RandomForestRegressor
   'model_params': {
-    "model_dim": 128, 
+    "model_dim": 8, 
     "num_heads": 8, 
     "num_layers": 4
   },
@@ -48,8 +48,8 @@ config = {
   },
 
   "save_files":{
-      "csv": "csv/single_patchtst/short_term/patchtst12cp.csv",
-      "day": "figs/single_patchtst/short_term/everyday/graph12cp.jpg",
-      "peak": "figs/single_patchtst/short_term/peakday/config12/"
+      "csv": "csv/single_patchtst/short_term/patchtst12_0.csv",
+      "day": "figs/single_patchtst/short_term/everyday/graph12_0.jpg",
+      "peak": "figs/single_patchtst/short_term/peakday/config12_0/"
   }
 }

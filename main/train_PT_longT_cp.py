@@ -155,7 +155,7 @@ def main(cfg):
     trn_dl = torch.utils.data.DataLoader(trn_ds, **data_loader_params)
     
     tst_ds = dt_class(tst_scaled, **window_params)
-    tst_dl = torch.utils.data.DataLoader(tst_ds, batch_size=tst_size, shuffle=False)
+    tst_dl = torch.utils.data.DataLoader(tst_ds, batch_size=1, shuffle=False)
     ##################################################
     
     ########## 3. Train Hyperparams setting ##########
@@ -269,6 +269,7 @@ def main(cfg):
     
     ################ 6. Plot and save ################
     # 36: 초미세먼지 수치가 "나쁨" 인 기중
+    y, p = y.T, p.T #patchTST longterm 수행 시
     peak_idx = np.unique(np.where(y > 36)[0])
     print(y.shape)
     print(peak_idx)
@@ -294,15 +295,15 @@ def main(cfg):
     plt.savefig(day_path, format="jpeg")
     plt.cla()
         
-    for i in peak_idx:
-        mse, rmse, r2, mae, mape = mse_func(p[i],y[i]), rmse_func(p[i],y[i]), r2_score(p[i],y[i]), mae_func(p[i],y[i]), mape_func(p[i],y[i])
-        plt.title(f"PatchTST, MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
-        plt.plot(range(forecast_size), y[i], label="True")
-        plt.plot(range(forecast_size), p[i], label="Prediction")
-        plt.legend()
+    # for i in peak_idx:
+    #     mse, rmse, r2, mae, mape = mse_func(p[i],y[i]), rmse_func(p[i],y[i]), r2_score(p[i],y[i]), mae_func(p[i],y[i]), mape_func(p[i],y[i])
+    #     plt.title(f"PatchTST, MSE:{mse:.4f}, RMSE:{rmse:.4f}, R2:{r2:.4f}, \nMAE:{mae:.4f}, MAPE:{mape:.4f}")
+    #     plt.plot(range(forecast_size), y[i], label="True")
+    #     plt.plot(range(forecast_size), p[i], label="Prediction")
+    #     plt.legend()
 
-        plt.savefig(peak_path + f"{i}.jpg", format="jpeg")
-        plt.cla()
+    #     plt.savefig(peak_path + f"{i}.jpg", format="jpeg")
+    #     plt.cla()
     ##################################################
     
 
@@ -310,7 +311,7 @@ def get_args_parser(add_help=True):
   import argparse
   
   parser = argparse.ArgumentParser(description="Time-Series Prediction with ANN, PatchTST", add_help=add_help)
-  parser.add_argument("-c", "--config", default="pretrained_config/single_patchtst/short_term/config_patchtst12_0.py", type=str, help="configuration file")
+  parser.add_argument("-c", "--config", default="pretrained_config/single_patchtst/long_term/config_patchtst14_2.py", type=str, help="configuration file")
 
   return parser
 

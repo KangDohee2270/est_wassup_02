@@ -39,7 +39,7 @@ config = {
     },
     'metric': torchmetrics.MeanSquaredError(squared=False),
     'device': 'cuda',
-    'epochs': 10, # 10~100이하
+    'epochs': 100, # 10~100이하
   },
   
   'eval_params':{
@@ -48,8 +48,8 @@ config = {
   },
 
   "save_files":{
-      "csv": "csv/single_patchtst/short_term/patchtst12cp.csv",
-      "day": "figs/single_patchtst/short_term/everyday/graph12cp.jpg",
-      "peak": "figs/single_patchtst/short_term/peakday/config12/"
+      "csv": "csv/single_patchtst/short_term/patchtst12_epoch100.csv",
+      "day": "figs/single_patchtst/short_term/everyday/graph12_epoch100.jpg",
+      "peak": "figs/single_patchtst/short_term/peakday/config12_epoch100/"
   }
 }
