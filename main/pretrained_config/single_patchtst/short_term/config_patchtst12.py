@@ -48,8 +48,8 @@ config = {
   },
 
   "save_files":{
-      "csv": "csv/single_patchtst/short_term/patchtst12cp.csv",
-      "day": "figs/single_patchtst/short_term/everyday/graph12cp.jpg",
+      "csv": "csv/single_patchtst/short_term/patchtst12.csv",
+      "day": "figs/single_patchtst/short_term/everyday/graph12.jpg",
       "peak": "figs/single_patchtst/short_term/peakday/config12/"
   }
 }
