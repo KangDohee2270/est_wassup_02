@@ -35,11 +35,11 @@ config = {
     'loss': F.mse_loss,
     'optim': torch.optim.AdamW,  ###
     'optim_params': {
-      'lr': 0.0001, # 0.001~0.0001
+      'lr': 0.00001, # 0.001~0.0001
     },
     'metric': torchmetrics.MeanSquaredError(squared=False),
     'device': 'cuda',
-    'epochs': 10, # 10~100이하
+    'epochs': 300, # 10~100이하
   },
   
   'eval_params':{
@@ -48,8 +48,8 @@ config = {
   },
 
   "save_files":{
-      "csv": "csv/single_patchtst/short_term/patchtst12.csv",
-      "day": "figs/single_patchtst/short_term/everyday/graph12.jpg",
-      "peak": "figs/single_patchtst/short_term/peakday/config12/"
+      "csv": "csv/single_patchtst/short_term/patchtst12_epochlr3.csv",
+      "day": "figs/single_patchtst/short_term/everyday/graph12_epochlr3.jpg",
+      "peak": "figs/single_patchtst/short_term/peakday/config12_epochllr3/"
   }
 }
