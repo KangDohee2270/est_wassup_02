@@ -1,14 +1,4 @@
 # est_wassup_02
-ESTSoft Wassup 1기 두번째 프로젝트
-deep learning with time-series data
-
-1조 화이팅~~!!
-
-1. 강도희
-2. 박건수
-3. 이채욱
-4. 정영준
-5. 황소연
 
 ## Get Started
 ### Environment Setting
